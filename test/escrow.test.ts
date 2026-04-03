@@ -17,9 +17,8 @@ describe("MilestoneEscrow", function () {
     ctx = await deployEscrow();
   });
 
-  // ─────────────────────────────────────────────────────────
   // SECTION 1: createEscrow
-  // ─────────────────────────────────────────────────────────
+
   describe("createEscrow", function () {
     it("should create escrow with correct parameters", async function () {
       const { escrow, token, client, contractor, arbitrator } = ctx;
@@ -133,9 +132,8 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
   // SECTION 2: fundEscrow
-  // ─────────────────────────────────────────────────────────
+
   describe("fundEscrow", function () {
     it("should fund escrow and transfer tokens", async function () {
       const { escrow, token, client, contractor, arbitrator } = ctx;
@@ -197,17 +195,21 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
+  
   // SECTION 3: submitMilestone
-  // ─────────────────────────────────────────────────────────
+
   describe("submitMilestone", function () {
     it("should submit a pending milestone", async function () {
-      const { escrow, contractor } = ctx;
-      const escrowId = await createAndFundEscrow(ctx);
-
-      await expect(escrow.connect(contractor).submitMilestone(escrowId, 0))
-        .to.emit(escrow, "MilestoneSubmitted")
-        .withArgs(escrowId, 0, await getBlockTimestamp());
+        const { escrow, contractor } = ctx;
+        const escrowId = await createAndFundEscrow(ctx);
+      
+        const tx = await escrow.connect(contractor).submitMilestone(escrowId, 0);
+        const receipt = await tx.wait();
+        const block = await ethers.provider.getBlock(receipt!.blockNumber);
+      
+        await expect(tx)
+          .to.emit(escrow, "MilestoneSubmitted")
+          .withArgs(escrowId, 0, block!.timestamp);
     });
 
     it("should revert if not contractor", async function () {
@@ -253,9 +255,8 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
   // SECTION 4: approveMilestone + rejectMilestone
-  // ─────────────────────────────────────────────────────────
+
   describe("approveMilestone", function () {
     it("should approve a submitted milestone", async function () {
       const { escrow, client, contractor } = ctx;
@@ -319,9 +320,8 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
   // SECTION 5: claimExpiredMilestone
-  // ─────────────────────────────────────────────────────────
+  
   describe("claimExpiredMilestone", function () {
     it("should auto-approve after review window expires", async function () {
       const { escrow, contractor } = ctx;
@@ -359,9 +359,8 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
   // SECTION 6: withdrawMilestone
-  // ─────────────────────────────────────────────────────────
+
   describe("withdrawMilestone", function () {
     it("should transfer funds to contractor on withdrawal", async function () {
       const { escrow, token, client, contractor } = ctx;
@@ -418,9 +417,9 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
+  
   // SECTION 7: cancelMilestone
-  // ─────────────────────────────────────────────────────────
+
   describe("cancelMilestone", function () {
     it("should refund client on cancel", async function () {
       const { escrow, token, client } = ctx;
@@ -457,9 +456,8 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
   // SECTION 8: disputes
-  // ─────────────────────────────────────────────────────────
+
   describe("raiseDispute", function () {
     it("should allow client to raise dispute on submitted milestone", async function () {
       const { escrow, client, contractor } = ctx;
@@ -603,9 +601,8 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  // ─────────────────────────────────────────────────────────
   // SECTION 9: Full flow integration test
-  // ─────────────────────────────────────────────────────────
+
   describe("Full flow", function () {
     it("should complete a full 3-milestone project lifecycle", async function () {
       const { escrow, token, client, contractor, arbitrator } = ctx;
