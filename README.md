@@ -78,7 +78,7 @@ dispute, rather than freezing the entire escrow.
 **8. Optional arbitrator**  
 The arbitrator address is set at escrow creation and can be `address(0)` 
 if neither party wants arbitration. Calling `raiseDispute()` on an escrow 
-without an arbitrator reverts — ensuring disputes can only be raised when 
+without an arbitrator reverts; ensuring disputes can only be raised when 
 there is a resolution path available.
 
 ---
@@ -116,7 +116,7 @@ there is a resolution path available.
 
 ### Prerequisites
 
-- Node.js v18 or v20 (v24 works with warnings)
+- Node.js v18 or v20
 - pnpm
 
 ### Install dependencies
