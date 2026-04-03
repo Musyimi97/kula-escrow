@@ -31,7 +31,7 @@ contract MilestoneEscrow is IEscrow, ReentrancyGuard {
     // escrowId → Escrow
     mapping(uint256 => Escrow) public escrows;
 
-    // escrowId → array of milestones  ← THIS IS MISSING
+    // escrowId → array of milestones
     mapping(uint256 => Milestone[]) public milestones;
 
     // escrowId → milestoneIndex → dispute raiser

@@ -69,7 +69,10 @@ export async function createAndFundEscrow(ctx: TestContext): Promise<bigint> {
     })
     .find((e) => e?.name === "EscrowCreated");
 
-  const escrowId = event?.args[0] as bigint;
+  if (!event) {
+    throw new Error("EscrowCreated event not found in transaction logs");
+  }
+  const escrowId = event.args[0] as bigint;
 
   await escrow.connect(client).fundEscrow(escrowId);
 

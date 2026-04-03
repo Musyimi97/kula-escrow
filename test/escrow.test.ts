@@ -195,9 +195,8 @@ describe("MilestoneEscrow", function () {
     });
   });
 
-  
   // SECTION 3: submitMilestone
-
+  
   describe("submitMilestone", function () {
     it("should submit a pending milestone", async function () {
         const { escrow, contractor } = ctx;
