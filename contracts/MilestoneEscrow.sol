@@ -25,15 +25,17 @@ contract MilestoneEscrow is IEscrow, ReentrancyGuard {
         uint256 totalAmount;
         bool funded;
     }
-        // ─── State ───────────────────────────────────────
+        //  State 
     uint256 public escrowCounter;
 
     // escrowId → Escrow
     mapping(uint256 => Escrow) public escrows;
 
-    // escrowId → milestoneIndex → who raised the dispute (address(0) means no dispute raised)
-    mapping(uint256 => mapping(uint256 => address)) public disputeRaisedBy;
+    // escrowId → array of milestones
+    mapping(uint256 => Milestone[]) public milestones;
 
+    // escrowId → milestoneIndex → dispute raiser
+    mapping(uint256 => mapping(uint256 => address)) public disputeRaisedBy;
 
     // Constructor
     constructor() ReentrancyGuard() {
