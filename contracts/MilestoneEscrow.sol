@@ -215,7 +215,7 @@ contract MilestoneEscrow is IEscrow, ReentrancyGuard {
         if (milestone.status != MilestoneStatus.SUBMITTED)
             revert InvalidStatus(milestone.status);
 
-        // Review window must not have expired
+        // Review_window must not have expired
         if (block.timestamp > milestone.submissionTime + escrows[escrowId].reviewWindow)
             revert ReviewWindowExpired();
 
@@ -226,34 +226,181 @@ contract MilestoneEscrow is IEscrow, ReentrancyGuard {
     }
 
 
-    function claimExpiredMilestone(
-        uint256 escrowId,
-        uint256 milestoneIndex
-    ) external {}
+        // Contractor calls this if client never responded within
+        // the review_window. Auto-approves the milestone.
+        // This protects contractor from client ghosting.
+    function claimExpiredMilestone(uint256 escrowId, uint256 milestoneIndex)
+        external
+        escrowExists(escrowId)
+        onlyContractor(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+    {
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
 
-    function withdrawMilestone(
-        uint256 escrowId,
-        uint256 milestoneIndex
-    ) external {}
+        // Only SUBMITTED milestones can expire
+        if (milestone.status != MilestoneStatus.SUBMITTED)
+            revert InvalidStatus(milestone.status);
 
-    function cancelMilestone(
-        uint256 escrowId,
-        uint256 milestoneIndex
-    ) external {}
+        // Review window must have actually passed
+        // If client already acted, this should not be callable
+        if (block.timestamp <= milestone.submissionTime + escrows[escrowId].reviewWindow)
+            revert ReviewWindowNotExpired();
 
-    function raiseDispute(
-        uint256 escrowId,
-        uint256 milestoneIndex
-    ) external {}
+        // Auto-approve — contractor proved client didn't respond
+        milestone.status = MilestoneStatus.APPROVED;
 
+        emit MilestoneApproved(escrowId, milestoneIndex);
+    }
+
+    // Contractor withdraws funds for an APPROVED milestone.
+    // CEI pattern strictly enforced — state before transfer.
+    // nonReentrant as additional defense layer.
+    // Can only withdraw once — WITHDRAWN is terminal state.
+    function withdrawMilestone(uint256 escrowId, uint256 milestoneIndex)
+        external
+        escrowExists(escrowId)
+        onlyContractor(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+        nonReentrant
+    {
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
+
+        // Only APPROVED milestones can be withdrawn
+        if (milestone.status != MilestoneStatus.APPROVED)
+            revert InvalidStatus(milestone.status);
+
+        uint256 amount = milestone.amount;
+
+        // EFFECTS before INTERACTIONS — CEI pattern
+        // Mark withdrawn before transfer to prevent reentrancy
+        milestone.status = MilestoneStatus.WITHDRAWN;
+
+        // Transfer funds to contractor
+        IERC20(escrows[escrowId].paymentToken).safeTransfer(
+            msg.sender,
+            amount
+        );
+
+        emit MilestoneWithdrawn(escrowId, milestoneIndex, amount);
+    }
+
+    // Client cancels a milestone that hasn't been submitted yet.
+    // Refunds that milestone's amount back to client.
+    // Only PENDING milestones can be cancelled —
+    // once submitted, client must approve/reject/dispute.
+    function cancelMilestone(uint256 escrowId, uint256 milestoneIndex)
+        external
+        escrowExists(escrowId)
+        onlyClient(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+        nonReentrant
+    {
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
+
+        // Only PENDING milestones can be cancelled
+        // Submitted work cannot be unilaterally cancelled by client
+        if (milestone.status != MilestoneStatus.PENDING)
+            revert InvalidStatus(milestone.status);
+
+        uint256 refundAmount = milestone.amount;
+
+        // EFFECTS before INTERACTIONS — CEI pattern
+        milestone.status = MilestoneStatus.CANCELLED;
+
+        // Refund this milestone's amount to client
+        IERC20(escrows[escrowId].paymentToken).safeTransfer(
+            escrows[escrowId].client,
+            refundAmount
+        );
+
+        emit MilestoneCancelled(escrowId, milestoneIndex, refundAmount);
+    }
+
+    // Either client or contractor can raise a dispute on a
+    // SUBMITTED milestone. Pauses payout until resolved.
+    // Requires an arbitrator to have been set at creation.
+    // Records who raised the dispute for arbitrator context.
+    function raiseDispute(uint256 escrowId, uint256 milestoneIndex)
+        external
+        escrowExists(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+    {
+        Escrow storage escrow = escrows[escrowId];
+
+        // Only client or contractor can raise a dispute
+        if (msg.sender != escrow.client && msg.sender != escrow.contractor)
+            revert NotClient();
+
+        // Must have an arbitrator — disputes need resolution path
+        if (escrow.arbitrator == address(0)) revert NoArbitrator();
+
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
+
+        // Only SUBMITTED milestones can be disputed
+        // PENDING milestones haven't been submitted yet
+        // APPROVED/WITHDRAWN are already resolved
+        if (milestone.status != MilestoneStatus.SUBMITTED)
+            revert InvalidStatus(milestone.status);
+
+        // Record who raised it — arbitrator needs this context
+        disputeRaisedBy[escrowId][milestoneIndex] = msg.sender;
+
+        milestone.status = MilestoneStatus.DISPUTED;
+
+        emit DisputeRaised(escrowId, milestoneIndex, msg.sender);
+    }
+
+    // Only the arbitrator can resolve a disputed milestone.
+    // resolvedFor must be either client or contractor address.
+    // If resolved for contractor → APPROVED, can withdraw.
+    // If resolved for client → CANCELLED, funds refunded.
     function resolveDispute(
         uint256 escrowId,
         uint256 milestoneIndex,
         address resolvedFor
-    ) external {}
+    )
+        external
+        escrowExists(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+        nonReentrant
+    {
+        Escrow storage escrow = escrows[escrowId];
 
+        // Only the designated arbitrator can resolve
+        if (msg.sender != escrow.arbitrator) revert NotArbitrator();
 
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
 
+        // Can only resolve DISPUTED milestones
+        if (milestone.status != MilestoneStatus.DISPUTED)
+            revert InvalidStatus(milestone.status);
 
+        // resolvedFor must be client or contractor — no third party
+        if (resolvedFor != escrow.client && resolvedFor != escrow.contractor)
+            revert ZeroAddress();
 
+        uint256 amount = milestone.amount;
+
+        if (resolvedFor == escrow.contractor) {
+            // Contractor wins — approve for withdrawal
+            // Contractor must still call withdrawMilestone()
+            milestone.status = MilestoneStatus.APPROVED;
+        } else {
+            // Client wins — cancel and refund immediately
+            // No separate withdrawal step needed for client
+            milestone.status = MilestoneStatus.CANCELLED;
+
+            IERC20(escrow.paymentToken).safeTransfer(
+                escrow.client,
+                amount
+            );
+        }
+
+        emit DisputeResolved(escrowId, milestoneIndex, resolvedFor);
+    }
 }
