@@ -42,26 +42,189 @@ contract MilestoneEscrow is IEscrow, ReentrancyGuard {
 
     }
 
-      //  Function Stubs 
+//  Modifiers 
+
+    modifier onlyClient(uint256 escrowId) {
+        if (msg.sender != escrows[escrowId].client) revert NotClient();
+        _;
+    }
+
+    modifier onlyContractor(uint256 escrowId) {
+        if (msg.sender != escrows[escrowId].contractor) revert NotContractor();
+        _;
+    }
+
+    modifier escrowExists(uint256 escrowId) {
+        if (escrows[escrowId].client == address(0)) revert InvalidMilestoneIndex();
+        _;
+    }
+
+    modifier isFunded(uint256 escrowId) {
+        if (!escrows[escrowId].funded) revert NotFunded();
+        _;
+    }
+
+    modifier validMilestone(uint256 escrowId, uint256 milestoneIndex) {
+        if (milestoneIndex >= milestones[escrowId].length)
+            revert InvalidMilestoneIndex();
+        _;
+    }
+
+    // Client calls this to set up the escrow agreement.
+    // No funds move here — just configuration.
+    // Funding is a separate step (fundEscrow).
     function createEscrow(EscrowParams calldata params)
-        external returns (uint256) {}
+        external
+        returns (uint256 escrowId)
+    {
+        // Validate all inputs before touching state
+        if (params.contractor == address(0)) revert ZeroAddress();
+        if (params.paymentToken == address(0)) revert ZeroAddress();
+        if (params.milestoneAmounts.length == 0) revert ZeroAmount();
+        if (params.reviewWindow == 0) revert ZeroAmount();
+        if (params.contractor == msg.sender) revert ZeroAddress();
 
-    function fundEscrow(uint256 escrowId) external {}
+        // Calculate total — every amount must be non-zero
+        uint256 total;
+        for (uint256 i = 0; i < params.milestoneAmounts.length; i++) {
+            if (params.milestoneAmounts[i] == 0) revert ZeroAmount();
+            total += params.milestoneAmounts[i];
+        }
 
-    function submitMilestone(
-        uint256 escrowId,
-        uint256 milestoneIndex
-    ) external {}
+        // Assign ID then increment — so first ID = 1
+        escrowId = escrowCounter;
+        escrowCounter++;
 
-    function approveMilestone(
-        uint256 escrowId,
-        uint256 milestoneIndex
-    ) external {}
+        // Store escrow configuration
+        escrows[escrowId] = Escrow({
+            client: msg.sender,
+            contractor: params.contractor,
+            paymentToken: params.paymentToken,
+            arbitrator: params.arbitrator,
+            reviewWindow: params.reviewWindow,
+            totalAmount: total,
+            funded: false
+        });
 
-    function rejectMilestone(
-        uint256 escrowId,
-        uint256 milestoneIndex
-    ) external {}
+        // Push each milestone as PENDING
+        for (uint256 i = 0; i < params.milestoneAmounts.length; i++) {
+            milestones[escrowId].push(Milestone({
+                amount: params.milestoneAmounts[i],
+                status: MilestoneStatus.PENDING,
+                submissionTime: 0
+            }));
+        }
+
+        emit EscrowCreated(escrowId, msg.sender, params.contractor, total);
+    }
+
+    // Client deposits the full escrow amount in one transaction.
+    // Uses SafeERC20 to handle non-standard tokens (USDT etc).
+    // Can only be called once — funded flag prevents double funding.
+    function fundEscrow(uint256 escrowId)
+        external
+        escrowExists(escrowId)
+        onlyClient(escrowId)
+        nonReentrant
+    {
+        Escrow storage escrow = escrows[escrowId];
+
+        // Prevent funding twice
+        if (escrow.funded) revert AlreadyFunded();
+
+        // Mark funded BEFORE transfer — CEI pattern
+        // Prevents reentrancy even though nonReentrant also guards this
+        escrow.funded = true;
+
+        // Pull full amount from client wallet into this contract
+        // safeTransferFrom handles tokens that don't return bool
+        IERC20(escrow.paymentToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            escrow.totalAmount
+        );
+
+        emit EscrowFunded(escrowId, escrow.totalAmount);
+    }
+
+    // Contractor marks a milestone as submitted for reviewing.
+    // Only PENDING or REJECTED milestones can be submitted.
+    // Records submission time — used for review_window expiry.
+    function submitMilestone(uint256 escrowId, uint256 milestoneIndex)
+        external
+        escrowExists(escrowId)
+        onlyContractor(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+    {
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
+
+        // Only PENDING or REJECTED can be submitted
+        // REJECTED means client rejected and contractor resubmits
+        if (
+            milestone.status != MilestoneStatus.PENDING &&
+            milestone.status != MilestoneStatus.REJECTED
+        ) revert InvalidStatus(milestone.status);
+
+        // Record submission time — review window starts now
+        milestone.status = MilestoneStatus.SUBMITTED;
+        milestone.submissionTime = block.timestamp;
+
+        emit MilestoneSubmitted(escrowId, milestoneIndex, block.timestamp);
+    }
+
+    // Client approves a submitted milestone.
+    // Moves status to APPROVED — contractor can then withdraw.
+    // Cannot approve disputed milestones.
+    function approveMilestone(uint256 escrowId, uint256 milestoneIndex)
+        external
+        escrowExists(escrowId)
+        onlyClient(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+    {
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
+
+        // Only SUBMITTED milestones can be approved
+        if (milestone.status != MilestoneStatus.SUBMITTED)
+            revert InvalidStatus(milestone.status);
+
+        // Review window must not have expired
+        // If expired, contractor uses claimExpiredMilestone instead
+        if (block.timestamp > milestone.submissionTime + escrows[escrowId].reviewWindow)
+            revert ReviewWindowExpired();
+
+        milestone.status = MilestoneStatus.APPROVED;
+
+        emit MilestoneApproved(escrowId, milestoneIndex);
+    }
+
+    // Client rejects a submitted milestone.
+    // Moves back to REJECTED — contractor can resubmit.
+    // Cannot reject disputed milestones.
+    function rejectMilestone(uint256 escrowId, uint256 milestoneIndex)
+        external
+        escrowExists(escrowId)
+        onlyClient(escrowId)
+        isFunded(escrowId)
+        validMilestone(escrowId, milestoneIndex)
+    {
+        Milestone storage milestone = milestones[escrowId][milestoneIndex];
+
+        // Only SUBMITTED milestones can be rejected
+        if (milestone.status != MilestoneStatus.SUBMITTED)
+            revert InvalidStatus(milestone.status);
+
+        // Review window must not have expired
+        if (block.timestamp > milestone.submissionTime + escrows[escrowId].reviewWindow)
+            revert ReviewWindowExpired();
+
+        // Reset to REJECTED — contractor can resubmit
+        milestone.status = MilestoneStatus.REJECTED;
+
+        emit MilestoneRejected(escrowId, milestoneIndex);
+    }
+
 
     function claimExpiredMilestone(
         uint256 escrowId,
