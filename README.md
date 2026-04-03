@@ -1,7 +1,7 @@
 # Milestone Escrow
 
 A Solidity smart contract implementing a milestone-based escrow system 
-for freelance and contract work. Built for the Kula Protocol take-home assignment.
+for freelance and contract work. Built for the Kula take-home assignment.
 
 ---
 
