@@ -106,9 +106,10 @@ there is a resolution path available.
 | Upgradeability | Not implemented | Simpler and more trustless, but bugs require redeployment |
 | Arbitration | Single arbitrator address | Simple to implement, but centralized trust assumption |
 | Milestone descriptions | Stored off-chain | Saves gas, but requires off-chain coordination |
-| Native ETH | Not supported | Reduces complexity, ERC-20 only |
-| Factory pattern | Not implemented | Each escrow deployed separately, no cross-escrow discovery |
-| Partial payouts | Not supported | Milestones are all-or-nothing |
+| Native ETH | Not implemented (stretch goal) | Would require dual transfer paths — adds complexity and attack surface to all withdrawal functions |
+| Factory pattern | Implemented | Each escrow is an isolated contract — limits blast radius of any bug, but increases deployment gas vs mapping-based approach |
+| Partial payouts | Not implemented (stretch goal) | Partial approvals interact with dispute and cancellation edge cases requiring significant additional test coverage to be safe |
+| EIP-712 signatures | Not implemented (stretch goal) | Would allow gasless client approvals but requires nonce management, replay protection, and signature expiry — meaningful scope increase for limited time |
 
 ---
 
