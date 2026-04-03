@@ -638,6 +638,112 @@ describe("MilestoneEscrow", function () {
   });
 });
 
+// SECTION 10: Factory
+// ─────────────────────────────────────────────────────────
+// SECTION 10: Factory
+// ─────────────────────────────────────────────────────────
+describe("MilestoneEscrowFactory", function () {
+  let factory: any;
+  let factoryCtx: TestContext;
+
+  beforeEach(async function () {
+    // Fresh context for factory tests
+    factoryCtx = await deployEscrow();
+
+    const Factory = await ethers.getContractFactory("MilestoneEscrowFactory");
+    factory = await Factory.deploy();
+  });
+
+  it("should deploy a new escrow contract", async function () {
+    const { client } = factoryCtx;
+
+    const tx = await factory.connect(client).deployEscrow();
+    const receipt = await tx.wait();
+
+    const event = receipt?.logs
+      .map((log: any) => {
+        try { return factory.interface.parseLog(log); } catch { return null; }
+      })
+      .find((e: any) => e?.name === "EscrowDeployed");
+
+    expect(event).to.not.be.undefined;
+    expect(event.args.creator).to.equal(client.address);
+    expect(event.args.escrowAddress).to.not.equal(ethers.ZeroAddress);
+  });
+
+  it("should track total escrows deployed", async function () {
+    const { client, contractor } = factoryCtx;
+
+    await factory.connect(client).deployEscrow();
+    await factory.connect(client).deployEscrow();
+    await factory.connect(contractor).deployEscrow();
+
+    const total = await factory.totalEscrows();
+    expect(total).to.equal(3);
+  });
+
+  it("should track escrows by creator", async function () {
+    const { client, contractor } = factoryCtx;
+
+    await factory.connect(client).deployEscrow();
+    await factory.connect(client).deployEscrow();
+    await factory.connect(contractor).deployEscrow();
+
+    const clientEscrows = await factory.getEscrowsByCreator(client.address);
+    const contractorEscrows = await factory.getEscrowsByCreator(contractor.address);
+
+    expect(clientEscrows.length).to.equal(2);
+    expect(contractorEscrows.length).to.equal(1);
+  });
+
+  it("should deploy fully functional escrow contracts", async function () {
+    const { client, contractor, arbitrator, token } = factoryCtx;
+
+    const tx = await factory.connect(client).deployEscrow();
+    const receipt = await tx.wait();
+
+    const event = receipt?.logs
+      .map((log: any) => {
+        try { return factory.interface.parseLog(log); } catch { return null; }
+      })
+      .find((e: any) => e?.name === "EscrowDeployed");
+
+    const escrowAddress = event.args.escrowAddress;
+    const escrow = await ethers.getContractAt("MilestoneEscrow", escrowAddress);
+
+    await token.connect(client).approve(escrowAddress, ethers.parseEther("10000"));
+
+    await expect(
+      escrow.connect(client).createEscrow({
+        contractor: contractor.address,
+        paymentToken: await token.getAddress(),
+        milestoneAmounts: DEFAULT_MILESTONES,
+        reviewWindow: REVIEW_WINDOW,
+        arbitrator: arbitrator.address,
+      })
+    ).to.emit(escrow, "EscrowCreated");
+  });
+
+  it("should deploy escrows at unique addresses", async function () {
+    const { client } = factoryCtx;
+
+    const tx1 = await factory.connect(client).deployEscrow();
+    const tx2 = await factory.connect(client).deployEscrow();
+
+    const r1 = await tx1.wait();
+    const r2 = await tx2.wait();
+
+    const getAddr = (receipt: any) =>
+      receipt?.logs
+        .map((log: any) => {
+          try { return factory.interface.parseLog(log); } catch { return null; }
+        })
+        .find((e: any) => e?.name === "EscrowDeployed")?.args.escrowAddress;
+
+    expect(getAddr(r1)).to.not.equal(getAddr(r2));
+  });
+});
+
 // Helper to get current block timestamp
 async function getBlockTimestamp(): Promise<number> {
   const block = await ethers.provider.getBlock("latest");

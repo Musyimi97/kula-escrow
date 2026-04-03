@@ -106,9 +106,10 @@ there is a resolution path available.
 | Upgradeability | Not implemented | Simpler and more trustless, but bugs require redeployment |
 | Arbitration | Single arbitrator address | Simple to implement, but centralized trust assumption |
 | Milestone descriptions | Stored off-chain | Saves gas, but requires off-chain coordination |
-| Native ETH | Not supported | Reduces complexity, ERC-20 only |
-| Factory pattern | Not implemented | Each escrow deployed separately, no cross-escrow discovery |
-| Partial payouts | Not supported | Milestones are all-or-nothing |
+| Native ETH | Not implemented (stretch goal) | Would require dual transfer paths — adds complexity and attack surface to all withdrawal functions |
+| Factory pattern | Implemented | Each escrow is an isolated contract — limits blast radius of any bug, but increases deployment gas vs mapping-based approach |
+| Partial payouts | Not implemented (stretch goal) | Partial approvals interact with dispute and cancellation edge cases requiring significant additional test coverage to be safe |
+| EIP-712 signatures | Not implemented (stretch goal) | Would allow gasless client approvals but requires nonce management, replay protection, and signature expiry — meaningful scope increase for limited time |
 
 ---
 
@@ -139,64 +140,27 @@ npx hardhat test
 REPORT_GAS=true npx hardhat test
 ```
 
-### Expected output
-```
-MilestoneEscrow
-    createEscrow
-      ✔ should create escrow with correct parameters
-      ✔ should start escrow counter at 1
-      ✔ should revert with zero address contractor
-      ✔ should revert with zero address payment token
-      ✔ should revert with empty milestone amounts
-      ✔ should revert if contractor is same as client
-      ✔ should revert with zero review window
-    fundEscrow
-      ✔ should fund escrow and transfer tokens
-      ✔ should revert if already funded
-      ✔ should revert if not client
-    submitMilestone
-      ✔ should submit a pending milestone
-      ✔ should revert if not contractor
-      ✔ should revert if milestone already submitted
-      ✔ should revert with invalid milestone index
-      ✔ should allow resubmission after rejection
-    approveMilestone
-      ✔ should approve a submitted milestone
-      ✔ should revert if not client
-      ✔ should revert if review window expired
-    rejectMilestone
-      ✔ should reject a submitted milestone
-      ✔ should revert if review window expired
-    claimExpiredMilestone
-      ✔ should auto-approve after review window expires
-      ✔ should revert if review window not yet expired
-      ✔ should revert if not contractor
-    withdrawMilestone
-      ✔ should transfer funds to contractor on withdrawal
-      ✔ should revert if milestone not approved
-      ✔ should revert on double withdrawal
-      ✔ should revert if not contractor
-    cancelMilestone
-      ✔ should refund client on cancel
-      ✔ should revert if milestone already submitted
-      ✔ should revert if not client
-    raiseDispute
-      ✔ should allow client to raise dispute on submitted milestone
-      ✔ should allow contractor to raise dispute
-      ✔ should revert if no arbitrator set
-      ✔ should revert if milestone not submitted
-      ✔ should revert if stranger raises dispute
-    resolveDispute
-      ✔ should resolve in favor of contractor — approve for withdrawal
-      ✔ should resolve in favor of client — refund immediately
-      ✔ should revert if not arbitrator
-      ✔ should revert if not disputed
-      ✔ should revert if resolvedFor is not client or contractor
-    Full flow
-      ✔ should complete a full 3-milestone project lifecycle
-    ...
+Gas report output:
 
-  41 passing
+![Gas Report](docs/gas.png)
+
+### Run coverage report
+```bash
+npx hardhat coverage
+```
+
+Coverage report output:
+
+![Coverage Report](docs/coverage.png)
+
+### Deploy contracts locally
+```bash
+npx hardhat run scripts/deploy.ts
+```
+
+### Deploy to Sepolia testnet
+```bash
+npx hardhat run scripts/deploy.ts --network sepolia
 ```
 
 ---
