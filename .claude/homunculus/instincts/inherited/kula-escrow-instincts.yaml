@@ -1,0 +1,431 @@
+# Instincts generated from https://github.com/Musyimi97/kula-escrow
+# Generated: 2026-04-14T09:00:46.201Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: kula-escrow-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: fix, feat, test, docs
+
+## Evidence
+
+- 5 commits analyzed
+- Detected conventional commit pattern
+- Examples: feat(test): add escrow test helpers and MockERC20 implementation, test: add comprehensive test suite covering normal flows, edge cases, and failure cases
+
+---
+id: kula-escrow-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Commit Length
+
+## Action
+
+Write moderate-length commit messages (~72 characters)
+
+## Evidence
+
+- Average commit message length: 72 chars
+- Based on 5 commits
+
+---
+id: kula-escrow-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Naming Files
+
+## Action
+
+Use PascalCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: PascalCase
+
+---
+id: kula-escrow-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: kula-escrow-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: kula-escrow-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: kula-escrow-workflow-feature-implementation-with-tests
+trigger: "when doing feature implementation with tests"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Workflow Feature Implementation With Tests
+
+## Action
+
+Follow the feature-implementation-with-tests workflow:
+1. Edit or add smart contract implementation in contracts/*.sol
+2. Edit or add test helpers in test/helpers/*.ts
+3. Edit or add test cases in test/*.test.ts
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: contracts/MilestoneEscrow.sol, contracts/mocks/MockERC20.sol, test/helpers/setup.ts
+
+---
+id: kula-escrow-workflow-test-suite-enhancement
+trigger: "when doing test suite enhancement"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/Musyimi97/kula-escrow
+---
+
+# Kula Escrow Workflow Test Suite Enhancement
+
+## Action
+
+Follow the test-suite-enhancement workflow:
+1. Edit or add test cases in test/*.test.ts
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: test/escrow.test.ts
+
+---
+id: kula-escrow-instinct-file-naming
+trigger: "When creating a new file"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct File Naming
+
+## Action
+
+Name the file using PascalCase (e.g., MilestoneEscrow.sol, MockERC20.sol)
+
+## Evidence
+
+- Pattern in contracts/MilestoneEscrow.sol
+- Pattern in contracts/mocks/MockERC20.sol
+
+---
+id: kula-escrow-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Function Naming
+
+## Action
+
+Name the function using camelCase (e.g., createAndFundEscrow)
+
+## Evidence
+
+- Pattern in test/helpers/setup.ts
+- Pattern in escrow.test.ts
+
+---
+id: kula-escrow-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Class Naming
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in test/helpers/setup.ts
+
+---
+id: kula-escrow-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Constant Naming
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Pattern in test/helpers/setup.ts
+
+---
+id: kula-escrow-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in test/helpers/setup.ts
+- Pattern in test/escrow.test.ts
+
+---
+id: kula-escrow-instinct-export-style
+trigger: "When exporting functions or classes"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in test/helpers/setup.ts
+
+---
+id: kula-escrow-instinct-test-location
+trigger: "When adding or updating tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Test Location
+
+## Action
+
+Place test files in the separate test directory (test/*.test.ts)
+
+## Evidence
+
+- Pattern in test/escrow.test.ts
+- Pattern in test/helpers/setup.ts
+
+---
+id: kula-escrow-instinct-test-helper-pattern
+trigger: "When writing reusable test logic or setup"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Test Helper Pattern
+
+## Action
+
+Create or update helper files in test/helpers/
+
+## Evidence
+
+- Pattern in test/helpers/setup.ts
+
+---
+id: kula-escrow-instinct-test-comprehensiveness
+trigger: "When writing or updating tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Test Comprehensiveness
+
+## Action
+
+Cover normal flows, edge cases, and failure cases in test cases
+
+## Evidence
+
+- Commit: 'test: add comprehensive test suite covering normal flows, edge cases, and failure cases'
+- Pattern in test/escrow.test.ts
+
+---
+id: kula-escrow-instinct-commit-format
+trigger: "When making a commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Commit Format
+
+## Action
+
+Use conventional commit format with prefixes: fix, feat, test, docs
+
+## Evidence
+
+- Commit: 'feat(test): add escrow test helpers and MockERC20 implementation'
+- Commit: 'fix: correct timestamp assertion in submitMilestone test'
+
+---
+id: kula-escrow-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Commit Length
+
+## Action
+
+Keep the commit message concise, averaging around 72 characters
+
+## Evidence
+
+- Average commit length: 72
+- Pattern in commit examples
+
+---
+id: kula-escrow-instinct-feature-implementation-with-tests
+trigger: "When developing a new feature or fixing a bug in a smart contract and ensuring it is tested"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Feature Implementation With Tests
+
+## Action
+
+Edit or add smart contract in contracts/*.sol, update/add test helpers in test/helpers/*.ts, and update/add test cases in test/*.test.ts in one workflow
+
+## Evidence
+
+- Workflow: feature-implementation-with-tests
+- Commits: 'feat(test): add escrow test helpers and MockERC20 implementation'
+- Pattern in files contracts/MilestoneEscrow.sol, test/helpers/setup.ts, test/escrow.test.ts
+
+---
+id: kula-escrow-instinct-test-suite-enhancement
+trigger: "When improving test coverage or correcting test logic"
+confidence: 0.88
+domain: workflow
+source: repo-analysis
+source_repo: Musyimi97/kula-escrow
+---
+
+# Kula Escrow Instinct Test Suite Enhancement
+
+## Action
+
+Edit or add test cases in test/*.test.ts
+
+## Evidence
+
+- Workflow: test-suite-enhancement
+- Commit: 'test: add comprehensive test suite covering normal flows, edge cases, and failure cases'
+- Pattern in test/escrow.test.ts
+
